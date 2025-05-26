@@ -1,0 +1,83 @@
+/* Journey.css – สไตล์ตารางอย่างง่าย ---------------------------------- */
+
+.journey-table-wrapper {
+  overflow-x: auto;
+  margin-top: 1.5rem;   /* mt-6 */
+}
+
+/* ✅ Route header above the table */
+.journey-table-wrapper h2 {
+  font-size: 24px;
+  color: #333;
+  text-align: left;         /* Align to the left */
+  margin-bottom: 10px;
+  margin-top: 0;            /* Move closer to top */
+  margin-left: 0.75rem;     /* Optional: shift slightly from left edge (same as table padding) */
+}
+
+.journey-table {
+  border-collapse: collapse;
+  font-size: 0.875rem;  /* text-sm */
+  min-width: max-content;
+}
+
+/* ---------- Table Header ---------- */
+.journey-table thead {
+  background: #f3f4f6; /* gray-100 */
+}
+.journey-table th {
+  font-weight: 600;
+  text-transform: capitalize;
+  padding: 0.5rem 0.75rem; /* px-3 py-2 */
+  white-space: nowrap;
+  border-bottom: 1px solid #d1d5db; /* gray-300 */
+  text-align: left;
+}
+
+/* ---------- Zebra Rows ---------- */
+.journey-table tbody tr:nth-child(even) {
+  background: #f9fafb; /* gray-50 */
+}
+.journey-table td {
+  padding: 0.25rem 0.75rem; /* px-3 py-1 */
+  white-space: nowrap;
+  border-bottom: 1px solid #e5e7eb; /* gray-200 */
+}
+
+/* ---------- Selected Row Highlight ---------- */
+.journey-table tr.selected-row {
+  background-color: #9df4f5 !important; /* ✅ green highlight, override zebra */
+}
+
+/* ---------- Responsive Design ---------- */
+@media (max-width: 640px) {
+  .journey-table td,
+  .journey-table th {
+    font-size: 0.75rem; /* text-xs */
+    padding: 0.25rem 0.5rem; /* px-2 py-1 */
+  }
+}
+
+/* ---------- NEXT Button Styling ---------- */
+.next-button {
+  margin-top: 1rem;
+  padding: 8px 16px;
+  font-size: 16px;
+  background-color: hsl(84, 87%, 58%);
+  color: rgb(6, 28, 2);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.next-button:hover {
+  background-color: #99ed46;
+}
+
+.fare-amount {
+  font-size: 0.9rem;
+  font-weight: normal;
+  color: #010c1b;
+  white-space: nowrap;
+}

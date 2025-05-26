@@ -1,0 +1,33 @@
+/* FlightForm.css */
+
+.search-form {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+    padding: 20px;
+  }
+  
+  .search-input {
+    width: 180px;
+    padding: 8px;
+    font-size: 14px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+  }
+  
+  .search-button {
+    width: 90%;
+    max-width: 500px;
+    padding: 12px;
+    background-color: #c8ff2d; /* lime green */
+    color: black;
+    font-size: 18px;
+    font-weight: bold;
+    border: none;
+    border-radius: 999px;
+    cursor: pointer;
+    margin-top: 20px;
+  }
+  
