@@ -95,7 +95,7 @@ const NavBar = ({ active, setActive }) => {
       label: 'อุ่นใจการเดินทาง',
       icon: (
         <img
-          src="https://freemiumicons.com/wp-content/uploads/2022/06/travel-insurance-icon.png"
+          src="https://cdn-icons-png.flaticon.com/512/3729/3729428.png"
           alt="Insurance"
           style={{ width: '20px', height: '20px' }}
         />

@@ -1,8 +1,8 @@
 // src/services/flightService.js
 import axios from 'axios';
 
-const API_BASE_URL = 'https://nodebasic-production.up.railway.app/flights';
-//const API_BASE_URL = 'http://localhost:3100/flights';
+//const API_BASE_URL = 'https://nodebasic-production.up.railway.app/flights';
+const API_BASE_URL = 'http://localhost:3100/flights';
 /**
  * Get available flights
  * @param {Object} params - Flight search parameters
@@ -23,7 +23,7 @@ export const getAvailableFlights = async (params = {}) => {
   };
 
   try {
-    const response = await axios.post(API_BASE_URL, payload);
+    const response = await axios.post(API_BASE_URL, payload );
     return response.data;
   } catch (error) {
     console.error('❌ Flight API error:', error?.response?.data || error.message);

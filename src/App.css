@@ -451,3 +451,133 @@ button.search-input {
   padding: 8px;
   border-radius: 6px;
 }
+/* === Sidebar Slide-in Menu (Mobile) === */
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  width: 250px;
+  background-color: #fff8c6;
+  box-shadow: 2px 0 6px rgba(0, 0, 0, 0.15);
+  transform: translateX(-100%);
+  transition: transform 0.3s ease;
+  z-index: 1000;
+  padding: 16px;
+}
+
+.sidebar.open {
+  transform: translateX(0);
+}
+
+.sidebar-header {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.sidebar-links {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sidebar-link {
+  font-size: 16px;
+  font-weight: 600;
+  color: #222;
+  text-decoration: none;
+}
+
+.sidebar-link:hover {
+  color: #ff9800;
+}
+
+/* === Full-Width Mobile Tabs in Sidebar === */
+.full-width-tab {
+  display: block;
+  width: 100%;
+  padding: 14px 20px;
+  margin-bottom: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  background-color: #ffda33;
+  color: #000;
+  text-align: center;
+  text-decoration: none;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  transition: background-color 0.2s, transform 0.1s ease-in-out;
+}
+
+.full-width-tab:hover {
+  background-color: #ffd000;
+  transform: translateY(-1px);
+}
+/* Optional smaller version of full-width-tab */
+.compact-tab {
+  padding: 10px 16px;
+  font-size: 15px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+/* Old Css */
+.dropdown-container {
+  position: relative;
+  margin-bottom: 1rem;
+}
+
+.dropdown-toggle {
+  cursor: pointer;
+  background-color: white;
+  border: 1px solid #ccc;
+  padding: 8px;
+  border-radius: 4px;
+  font-size: 14px;
+  height: 30px;
+
+}
+
+.dropdown-panel {
+  position: absolute;
+  z-index: 999;
+  top: 110%;
+  left: 0;
+  width: 140%;
+  background-color: #61e9f3;
+  border: 1px solid #8ff093;
+  border-radius: 6px;
+  padding: 5px;
+  box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.passenger-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.passenger-row button {
+  background-color: #fef544;
+  border: none;
+  padding: 4px 10px;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.passenger-row button:disabled {
+  opacity: 0.8;
+  cursor: not-allowed;
+}
+
