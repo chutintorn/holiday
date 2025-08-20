@@ -1,11 +1,11 @@
+// Journey.jsx
 import React, { useState } from 'react';
 import './Journey.css';
 
-/* --------------------------------------------------
-   flattenFlights – converts the airline API response
-   into simple table‑friendly rows.
--------------------------------------------------- */
-export function flattenFlights(apiData = []) {
+const CLIENT_ID = '887eb5c3d01e4cf192404b731ee2eb27';
+const CLIENT_SECRET = 'A3B4033E52bE44C5B84c6869b4bd4Bd1';
+
+export function flattenFlights(apiData = [],securityToken) {
   const rows = [];
 
   apiData.forEach(day => {
@@ -21,9 +21,13 @@ export function flattenFlights(apiData = []) {
 
       const seg = (jou.travelInfos || [])[0] || {};
       const dur = seg.duration || '';
-      const ac = (seg.aircraftDescription || '')
-        .replace(/\([^)]*\)/g, '')
-        .trim();
+      const ac = (seg.aircraftDescription || '').replace(/\([^)]*\)/g, '').trim();
+
+      const xtraFare = (jou.fares || []).find(f => f.productName === 'NOK XTRA');
+      const xtraAmt = (xtraFare?.paxFareTaxBreakdown?.[0]?.fareAmountIncludingTax) || '';
+
+      const maxFare = (jou.fares || []).find(f => f.productName === 'NOK MAX');
+      const maxAmt = (maxFare?.paxFareTaxBreakdown?.[0]?.fareAmountIncludingTax) || '';
 
       (jou.fares || []).forEach(fare => {
         if (fare.productName !== 'NOK LITE') return;
@@ -33,7 +37,8 @@ export function flattenFlights(apiData = []) {
           .map(f => f.fareKey);
 
         const pax = (fare.paxFareTaxBreakdown || [])[0] || {};
-        const row = {
+
+        rows.push({
           id: `${jou.journeyKey}-${fare.fareKey}`,
           departureTime: dep,
           arrivalTime: arr,
@@ -41,18 +46,20 @@ export function flattenFlights(apiData = []) {
           flightNumber: combinedFlightNumber,
           aircraftDescription: ac,
           fareAmountIncludingTax: pax.fareAmountIncludingTax || '',
+          nokXtraAmount: xtraAmt,
+          nokMaxAmount: maxAmt,
           fareBasisCode: pax.fareBasisCode || '',
           fareKey: fare.fareKey,
           journeyKey: jou.journeyKey,
           origin: jou.origin || day.origin || '',
           destination: jou.destination || day.destination || '',
-          departureDate: jou.departureDate || '' // ✅ Added
-        };
-
-        if (otherFareKeys[0]) row.farekey1 = otherFareKeys[0];
-        if (otherFareKeys[1]) row.farekey2 = otherFareKeys[1];
-
-        rows.push(row);
+          departureDate: jou.departureDate || '',
+          farekey1: otherFareKeys[0] || '',
+          farekey2: otherFareKeys[1] || '',
+          securityToken: securityToken || `token-${jou.journeyKey}`,
+          client_id: CLIENT_ID,
+          client_secret: CLIENT_SECRET
+        });
       });
     });
   });
@@ -60,116 +67,118 @@ export function flattenFlights(apiData = []) {
   return rows;
 }
 
-/* --------------------------------------------------
-   JourneyTable – renders the rows in an interactive
-   HTML table with radio‑select and NEXT button.
--------------------------------------------------- */
-export default function JourneyTable({ rows = [] }) {
-  const [selectedId, setSelectedId] = useState(null);
+export default function JourneyTable({ rows = [], onSubmit }) {
+  const [selectedRow, setSelectedRow] = useState(null);
+  const [selectedFare, setSelectedFare] = useState(null);
   if (!rows.length) return null;
 
-  const baseCols = [
-    'departureTime', 'arrivalTime', 'duration',
-    'flightNumber', 'aircraftDescription',
-    'fareAmountIncludingTax', 'fareBasisCode',
-    'fareKey', 'journeyKey'
-  ];
+  const handleFareClick = (row, col) => {
+    let fareKey;
+    if (col === 'fareAmountIncludingTax') fareKey = row.fareKey;
+    else if (col === 'nokXtraAmount') fareKey = row.farekey1;
+    else if (col === 'nokMaxAmount') fareKey = row.farekey2;
+    if (!fareKey) return;
 
-  const extraCols = [];
-  if (rows.some(r => r.farekey1)) extraCols.push('farekey1');
-  if (rows.some(r => r.farekey2)) extraCols.push('farekey2');
-  const cols = [...baseCols, ...extraCols];
-
-  const handleNextClick = () => {
-    alert(`Next step for ID: ${selectedId}`);
+    setSelectedRow(row);
+    setSelectedFare({
+      journeyKey: row.journeyKey,
+      fareKey,
+      securityToken: row.securityToken,
+      client_id: row.client_id,
+      client_secret: row.client_secret
+    });
   };
 
-  const route =
-    rows[0]?.origin && rows[0]?.destination
-      ? `${rows[0].origin} → ${rows[0].destination}`
-      : '';
+  const handleNextClick = () => {
+    if (!selectedFare || !onSubmit) return;
+    onSubmit(selectedRow, selectedFare);
+  };
 
-  // ✅ Format departure date as "05 JUN THU"
-  function formatDate(dateStr) {
-    if (!dateStr) return '';
-    const dateObj = new Date(dateStr);
-    if (isNaN(dateObj)) return '';
+  const colLabel = col => {
+    if (col === 'fareAmountIncludingTax') return 'Nok Lite';
+    if (col === 'nokXtraAmount') return 'Nok X-TRA';
+    if (col === 'nokMaxAmount') return 'Nok MAX';
+    if (col === 'departureTime') return 'Departure';
+    if (col === 'arrivalTime') return 'Arrival';
+    if (col === 'flightNumber') return 'Flight';
+    if (col === 'aircraftDescription') return 'Aircraft';
+    return col;
+  };
 
-    const day = String(dateObj.getDate()).padStart(2, '0');
-    const month = dateObj.toLocaleString('en-US', { month: 'short' }).toUpperCase();
-    const dow = dateObj.toLocaleString('en-US', { weekday: 'short' }).toUpperCase();
+  const cols = [
+    'departureTime', 'arrivalTime', 'duration',
+    'flightNumber', 'aircraftDescription',
+    'fareAmountIncludingTax', 'nokXtraAmount', 'nokMaxAmount'
+  ];
 
-    return `${day} ${month} ${dow}`;
-  }
+  const depDateStr = (() => {
+    const date = new Date(rows[0]?.departureDate);
+    const ddMMM = date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }).toUpperCase();
+    const dow = date.toLocaleDateString('en-GB', { weekday: 'short' });
+    const dowColors = {
+      Mon: '#FFD700', Tue: '#FF69B4', Wed: '#32CD32',
+      Thu: '#FFA500', Fri: '#00BFFF', Sat: '#CF9FFF', Sun: '#FF4500'
+    };
+    return (
+      <>
+        <span style={{ fontSize: '0.85em', marginLeft: 8, color: '#444' }}>{ddMMM}</span>
+        <span style={{
+          fontSize: '0.85em', marginLeft: 6, backgroundColor: '#000',
+          color: dowColors[dow] || '#FFF', padding: '2px 6px', borderRadius: 4,
+          fontWeight: 600, display: 'inline-block'
+        }}>{dow}</span>
+      </>
+    );
+  })();
 
   return (
     <div className="journey-table-wrapper">
-      {/* Route Header with Small Date */}
       <h2 style={{ textAlign: 'left', margin: '0 0 6px 12px', color: 'blue' }}>
-        {route}
-        <span style={{ fontSize: '0.85em', marginLeft: '8px', color: '#444' }}>
-          {formatDate(rows[0]?.departureDate)}
-        </span>
+        {rows[0]?.origin} → {rows[0]?.destination} {depDateStr}
       </h2>
 
       <table className="journey-table">
         <thead>
           <tr>
-            <th></th>
-            {cols.map(col => (
-              <th key={col}>{col}</th>
-            ))}
+            {cols.map(col => <th key={col}>{colLabel(col)}</th>)}
           </tr>
         </thead>
         <tbody>
           {rows.map(row => (
-            <tr
-              key={row.id}
-              className={row.id === selectedId ? 'selected-row' : ''}
-            >
-              <td>
-                <input
-                  type="radio"
-                  name="selectFlight"
-                  value={row.id}
-                  checked={row.id === selectedId}
-                  onChange={() => setSelectedId(row.id)}
-                />
-              </td>
-
-              {cols.map(col => (
-                <td
-                  key={col}
-                  style={
-                    col === 'fareAmountIncludingTax'
-                      ? { color: 'blue', fontWeight: 'bold', fontSize: '1.05rem' }
-                      : col === 'departureTime'
-                      ? { color: 'black', fontWeight: 'bold', fontSize: '1.05rem' }
-                      : {}
-                  }
-                >
-                  {col === 'fareAmountIncludingTax'
-                    ? `THB ${Number(row[col]).toLocaleString(undefined, {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2
-                      })}`
-                    : col === 'departureTime' && row[col]?.length === 4
-                    ? `${row[col].slice(0, 2)}:${row[col].slice(2)}`
-                    : row[col]}
-                </td>
-              ))}
+            <tr key={row.id}>
+              {cols.map(col => {
+                const isSelectable = ['fareAmountIncludingTax', 'nokXtraAmount', 'nokMaxAmount'].includes(col);
+                const isSelected = selectedRow?.id === row.id &&
+                  selectedFare?.fareKey === (
+                    col === 'fareAmountIncludingTax' ? row.fareKey :
+                    col === 'nokXtraAmount' ? row.farekey1 :
+                    row.farekey2
+                  );
+                return (
+                  <td
+                    key={col}
+                    onClick={() => isSelectable && handleFareClick(row, col)}
+                    style={{
+                      cursor: isSelectable ? 'pointer' : 'default',
+                      backgroundColor: isSelected ? 'yellow' : 'transparent',
+                      fontWeight: isSelectable ? 'bold' : 'normal'
+                    }}>
+                    {isSelectable && row[col] !== ''
+                      ? `THB ${Number(row[col]).toLocaleString(undefined, {
+                          minimumFractionDigits: 2, maximumFractionDigits: 2
+                        })}`
+                      : row[col]}
+                  </td>
+                );
+              })}
             </tr>
           ))}
         </tbody>
       </table>
 
-      {selectedId && (
-        <div style={{ marginTop: '16px', textAlign: 'right' }}>
-          <button onClick={handleNextClick} className="next-button">
-            NEXT
-          </button>
-        </div>
-      )}
+      <div style={{ marginTop: 16, textAlign: 'right' }}>
+        <button onClick={handleNextClick} className="next-button">NEXT</button>
+      </div>
     </div>
   );
 }

@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import './App.css';
 import { getAvailableFlights } from './api/Booking';
+import { getPriceDetail } from './api/getPriceDetail'; // ✅ NEW: Import price detail API
 import JourneyTable, { flattenFlights } from './Journey.jsx';
+import { useNavigate } from 'react-router-dom'; // ✅ NEW: Add navigate for redirection
 
 const translations = {
   en: {
@@ -9,11 +11,13 @@ const translations = {
     to: 'To',
     depart: 'Departure Date',
     return: 'Return Date',
-    passenger: 'Select Passenger',
+    passenger: 'Select Passengers',
     promo: 'Promo Code (Optional)',
     search: 'Search',
     lang: 'ไทย',
-    passengers: ['1 Passenger', '2 Passengers', '3 Passengers', '4 Passengers']
+    labels: ['Adult  ', 'Child', 'Infant'],
+    ageGroups: ['From 12 years', ' 2–12 years ', 'Up to 2 years'],
+    loadingPrice: 'Fetching price details...'
   },
   th: {
     from: 'ต้นทาง',
@@ -24,7 +28,9 @@ const translations = {
     promo: 'โค้ดส่วนลด (ถ้ามี)',
     search: 'ค้นหา',
     lang: 'English',
-    passengers: ['1 ผู้โดยสาร', '2 ผู้โดยสาร', '3 ผู้โดยสาร', '4 ผู้โดยสาร']
+    labels: ['ผู้ใหญ่', 'เด็ก', 'ทารก'],
+    ageGroups: ['เกิน 12 ปี', 'ตั้งแต่ 2–12 ปี', 'ไม่ถึง 2 ปี'],
+    loadingPrice: 'กำลังดึงข้อมูลราคา...'
   }
 };
 
@@ -46,49 +52,61 @@ export default function SearchForm() {
   const [destination, setDestination] = useState('');
   const [departDate, setDepartDate] = useState('');
   const [returnDate, setReturnDate] = useState('');
-  const [passengers, setPassengers] = useState(1);
+  const [adult, setAdult] = useState(1);
+  const [child, setChild] = useState(0);
+  const [infant, setInfant] = useState(0);
   const [promo, setPromo] = useState('');
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState([]);
-
   const [selectedId, setSelectedId] = useState(null);
   const [selectedFlight, setSelectedFlight] = useState(null);
+  const [showPassengerDropdown, setShowPassengerDropdown] = useState(false);
+  const [loadingPriceDetail, setLoadingPriceDetail] = useState(false); // ✅ NEW: track price loading
 
+  const dropdownRef = useRef(null);
   const t = translations[lang];
+  const navigate = useNavigate(); // ✅ NEW: for routing
+
+  const handlePassengerChange = (type, delta) => {
+    if (type === 'adult') setAdult(prev => Math.max(1, prev + delta));
+    if (type === 'child') setChild(prev => Math.max(0, prev + delta));
+    if (type === 'infant') setInfant(prev => Math.max(0, prev + delta));
+  };
+
+  const passengerLabel = `${adult} ${t.labels[0]}${child ? `, ${child} ${t.labels[1]}` : ''}${infant ? `, ${infant} ${t.labels[2]}` : ''}`;
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setShowPassengerDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const getData = async () => {
     if (!origin || !destination || !departDate) {
       alert('✈️ กรุณากรอกต้นทาง ปลายทาง และวันเดินทาง');
       return;
     }
-
     setLoading(true);
-
     const journeys = [{ origin, destination, departureDate: departDate }];
-
     if (returnDate) {
-      journeys.push({
-        origin: destination,
-        destination: origin,
-        departureDate: returnDate
-      });
+      journeys.push({ origin: destination, destination: origin, departureDate: returnDate });
     }
-
     const payload = {
-      agencyCode: 'OTAINMMT',
+      agencyCode: '',
       currency: 'THB',
-      adult: passengers,
-      child: 0,
-      infant: 0,
+      adult,
+      child,
+      infant,
       journeys,
       promoCode: promo.trim() || undefined
     };
-
     try {
       const response = await getAvailableFlights(payload);
-      const tableRows = flattenFlights(response.data);
-      console.log("feat",response);
-      console.log("fix",tableRows);
+      const tableRows = flattenFlights(response.data,response.securityToken);
       setRows(tableRows);
       setSelectedId(null);
       setSelectedFlight(null);
@@ -100,11 +118,18 @@ export default function SearchForm() {
     }
   };
 
-  const handleSubmitFlight = (row) => {
-    alert(`✅ Flight selected: ${row.flightNumber} → ฿${row.fareAmountIncludingTax}`);
-    // TODO: navigate, store, or post to API as needed
+  const handleSubmitFlight = async (row) => {
+    setLoadingPriceDetail(true);
+    try {
+      const detail = await getPriceDetail(row);
+      navigate('/view-price-detail', { state: { priceDetail: detail, lang } });
+    } catch (err) {
+      console.error('❌ Price Detail Error:', err);
+      alert('Error fetching price detail');
+    } finally {
+      setLoadingPriceDetail(false);
+    }
   };
-
 
   return (
     <div className="search-form">
@@ -125,28 +150,32 @@ export default function SearchForm() {
       <input type="date" className="search-input" value={departDate} onChange={e => setDepartDate(e.target.value)} />
       <input type="date" className="search-input" value={returnDate} onChange={e => setReturnDate(e.target.value)} />
 
-      <select className="search-input" value={passengers} onChange={e => setPassengers(Number(e.target.value))}>
-        <option value="">{t.passenger}</option>
-        {t.passengers.map((label, i) => (
-          <option key={i} value={i + 1}>{label}</option>
-        ))}
-      </select>
+      <div className="dropdown-container" ref={dropdownRef}>
+        <div className="dropdown-toggle search-input" onClick={() => setShowPassengerDropdown(!showPassengerDropdown)}>
+          👤 {passengerLabel}
+        </div>
+        {showPassengerDropdown && (
+          <div className="dropdown-panel">
+            {[{ label: 'adult', value: adult }, { label: 'child', value: child }, { label: 'infant', value: infant }].map((type, idx) => (
+              <div key={type.label} className="passenger-row">
+                <div style={{ width: '80px' }}>{t.labels[idx]}</div>
+                <button onClick={() => handlePassengerChange(type.label, -1)} disabled={type.label === 'adult' && type.value <= 1}>−</button>
+                <span style={{ margin: '0 10px' }}>{type.value}</span>
+                <button onClick={() => handlePassengerChange(type.label, 1)}>+</button>
+                <div className="age-text" style={{ fontSize: '12px', marginLeft: 10 }}>{t.ageGroups[idx]}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
-      <input
-        type="text"
-        className="search-input"
-        value={promo}
-        onChange={e => setPromo(e.target.value)}
-        placeholder={t.promo}
-      />
+      <input type="text" className="search-input" value={promo} onChange={e => setPromo(e.target.value)} placeholder={t.promo} />
 
-      <button type="button" onClick={() => setLang(lang === 'th' ? 'en' : 'th')} style={{ marginBottom: 10 }}>
-        {t.lang}
-      </button>
+      <button type="button" onClick={() => setLang(lang === 'th' ? 'en' : 'th')} style={{ marginBottom: 10 }}>{t.lang}</button>
 
-      <button type="button" className="search-button" onClick={getData} disabled={loading}>
-        {loading ? '…' : t.search}
-      </button>
+      <button type="button" className="search-button" onClick={getData} disabled={loading}>{loading ? '…' : t.search}</button>
+
+      {loadingPriceDetail && <p>{t.loadingPrice}</p>}
 
       <JourneyTable
         rows={rows}
@@ -165,5 +194,4 @@ export default function SearchForm() {
       )}
     </div>
   );
-  
 }

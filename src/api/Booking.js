@@ -23,7 +23,7 @@ export const getAvailableFlights = async (params = {}) => {
   };
 
   try {
-    const response = await axios.post(API_BASE_URL, payload);
+    const response = await axios.post(API_BASE_URL, payload );
     return response.data;
   } catch (error) {
     console.error('❌ Flight API error:', error?.response?.data || error.message);

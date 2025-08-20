@@ -6,11 +6,12 @@ import SearchForm from './SearchForm';
 import TransferPage from './TransferPage';
 import Hotel from './Hotel';
 import EventPage from './EventPage';
-import ChatPage from './ChatPage';              // ✅ Replaced inline
-import PointsPage from './PointsPage';          // ✅ Replaced inline
-import InsurancePage from './InsurancePage';    // ✅ Replaced inline
+import ChatPage from './ChatPage';
+import PointsPage from './PointsPage';
+import InsurancePage from './InsurancePage';
 import Header from './Header';
 import NavBar from './NavBar';
+import ViewPriceDetail from './pages/ViewPriceDetail'; // ✅ NEW: Add this line
 import './App.css';
 
 // ****** Main homepage content component ******
@@ -40,6 +41,7 @@ export default function App() {
         <Route path="/chat" element={<ChatPage />} />
         <Route path="/points" element={<PointsPage />} />
         <Route path="/insurance" element={<InsurancePage />} />
+        <Route path="/view-price-detail" element={<ViewPriceDetail />} /> {/* ✅ NEW ROUTE */}
       </Routes>
     </Router>
   );
