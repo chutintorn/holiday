@@ -1,6 +1,6 @@
 // src/api/getPriceDetail.js
 export async function getPriceDetail(row) {
-  const response = await fetch('http://localhost:3100/pricedetails', {
+  const response = await fetch('https://nodebasic-production.up.railway.app/pricedetails', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
